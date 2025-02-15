@@ -12,3 +12,7 @@ This tool analyzes and visualizes AI-generated content feedback loops in trainin
 ## Installation
 ```bash
 pip install -r requirements.txt
+```
+
+## License
+MIT
