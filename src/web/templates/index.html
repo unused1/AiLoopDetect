@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Feedback Loop Detector</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .risk-high { color: #dc3545; }
+        .risk-medium { color: #ffc107; }
+        .risk-low { color: #198754; }
+        .metric-card {
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background-color: #f8f9fa;
+        }
+    </style>
 </head>
 <body>
     <div class="container mt-5">
@@ -22,10 +33,34 @@
             <div class="col-md-8">
                 <div id="results" class="d-none">
                     <h3>Analysis Results</h3>
-                    <div class="card">
-                        <div class="card-body">
-                            <p>AI Generation Probability: <span id="ai-probability"></span></p>
-                            <p>Confidence Score: <span id="confidence"></span></p>
+                    
+                    <!-- Main Metrics -->
+                    <div class="metric-card">
+                        <h4>AI Detection</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p>AI Probability: <span id="ai-probability" class="fw-bold"></span></p>
+                                <p>Confidence: <span id="confidence" class="fw-bold"></span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p>Risk Level: <span id="risk-level" class="fw-bold"></span></p>
+                                <p>Confidence Level: <span id="confidence-level" class="fw-bold"></span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Statistical Features -->
+                    <div class="metric-card">
+                        <h4>Text Analysis</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p>Word Diversity: <span id="word-diversity"></span></p>
+                                <p>Average Word Length: <span id="avg-word-length"></span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p>Sentence Complexity: <span id="sentence-complexity"></span></p>
+                                <p>Punctuation Density: <span id="punctuation-density"></span></p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -36,20 +71,55 @@
     <script>
         async function analyzeContent() {
             const content = document.getElementById('content').value;
-            const response = await fetch('/analyze', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ content })
-            });
-            const data = await response.json();
-            
-            document.getElementById('ai-probability').textContent = 
-                `${(data.ai_probability * 100).toFixed(2)}%`;
-            document.getElementById('confidence').textContent = 
-                `${(data.confidence * 100).toFixed(2)}%`;
-            document.getElementById('results').classList.remove('d-none');
+            if (!content.trim()) {
+                alert('Please enter some text to analyze');
+                return;
+            }
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ content })
+                });
+                
+                const data = await response.json();
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                // Update results
+                document.getElementById('ai-probability').textContent = 
+                    `${(data.ai_probability * 100).toFixed(1)}%`;
+                document.getElementById('confidence').textContent = 
+                    `${(data.confidence * 100).toFixed(1)}%`;
+                
+                // Update risk and confidence levels
+                const riskEl = document.getElementById('risk-level');
+                riskEl.textContent = data.interpretation.risk_level.toUpperCase();
+                riskEl.className = `risk-${data.interpretation.risk_level}`;
+                
+                const confEl = document.getElementById('confidence-level');
+                confEl.textContent = data.interpretation.confidence_level.toUpperCase();
+                
+                // Update statistical features
+                document.getElementById('word-diversity').textContent = 
+                    `${(data.analysis.statistical_features.word_diversity * 100).toFixed(1)}%`;
+                document.getElementById('avg-word-length').textContent = 
+                    data.analysis.statistical_features.avg_word_length.toFixed(2);
+                document.getElementById('sentence-complexity').textContent = 
+                    data.analysis.statistical_features.sentence_complexity.toFixed(2);
+                document.getElementById('punctuation-density').textContent = 
+                    `${(data.analysis.statistical_features.punctuation_density * 100).toFixed(1)}%`;
+
+                // Show results
+                document.getElementById('results').classList.remove('d-none');
+            } catch (error) {
+                alert('Analysis failed: ' + error.message);
+            }
         }
     </script>
 </body>
